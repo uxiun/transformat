@@ -22,10 +22,12 @@ jobs:
           node-version: 16.8.x
 
       - name: Install NPM packages
-        run: pnpm i 
+        run: pnpm i
 
       - name: Build Next.js app
         run: pnpm run build
+        env:
+          URL_PREFIX: transformat
 
       - name: Export Next.js app
         run: pnpm run export
