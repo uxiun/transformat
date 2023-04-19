@@ -16,8 +16,8 @@ const RecentEntries: FC = () => {
   const [allentries, setAllEntries] = useAtom(allentriesAtom)
   return(
       <div className="entries">
-        {allentries.slice(0, 10).reverse().map(e => (
-          <div key={e.from+e.to}>{JSON.stringify(e)}</div>
+        {allentries.slice(-10).reverse().map(e => (
+          <div key={e.from}>{JSON.stringify(e)}</div>
           ))}
       </div>
   )

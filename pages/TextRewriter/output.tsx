@@ -16,7 +16,16 @@ const JSONoutput: FC = () => {
     parseError: ""
   })
   const [output, setOutput] = useState<string>(sortAndStringify(allentries))
-  const [openTip, setOpenTip] = useState<boolean>(false)
+  type Buttons = {
+    copy: boolean
+    append: boolean
+    initialize: boolean
+  }
+  const [openTip, setOpenTip] = useState<Buttons>({
+    copy: false,
+    append: false,
+    initialize: false
+  })
   useEffect(()=>{
     setOutput(sortAndStringify(allentries))
     setMessages(s => ({...s, parseError: ""}))
@@ -24,19 +33,27 @@ const JSONoutput: FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setOutput(e.target.value)
   }
-  const handleClick = () => {
-    copyToClipboard(output)
-    setOpenTip(true)
+  const handleClick = (attr: keyof Buttons) => () => {
+    if (attr == "copy") {
+      copyToClipboard(output)
+    } else {
+      importClick(attr)()
+    }
+    setOpenTip(s => ({...s, [attr]: true}))
   }
-  type ImportType = "append"|"reset"
+  type ImportType = "append"|"initialize"
   const importClick = (importType: ImportType) => () => {
     try {
       const res: Entry[] = JSON.parse(output)
       console.log(res)
-      if (importType == "reset") {
-        setAllEntries(justDedupEntries(res))
+      if (importType == "initialize") {
+        const {entries, dedupedMap} = justDedupEntries(res)
+        console.log("imported entries:", entries)
+        setAllEntries(entries)
+        setDedupedEntryMap(dedupedMap)
       } else {
         const {entries, dedupedMap} = addEntriesDeduping(dedupedEntryMap)(res)
+        console.log("imported entries:", entries)
         setDedupedEntryMap(dedupedMap)
         setAllEntries(entries)
       }
@@ -44,21 +61,41 @@ const JSONoutput: FC = () => {
       setMessages(s => ({...s, parseError: translationTree.error.parse[lang]}))
     }
   }
+  const tooltip = function ToolTipWrap(name: keyof Buttons) {
+    return(
+      <Tooltip
+        arrow
+        open={openTip[name]}
+        onClose={()=>setOpenTip(s => ({...s, [name]: false}))}
+        disableHoverListener
+        placement="top"
+        title={`${name}!`}
+      >
+          <Button
+            onClick={handleClick(name)}
+          >
+            {name == "copy" ? name : `import (${name})`}
+          </Button>
+      </Tooltip>
+    )
+  }
   return(
     <div>
       <h3>JSON({allentries.length})</h3>
       <div>{allentries.length >= 0 ? "" : ""}</div>
-      <Tooltip
+      <div className="buttons">
+        {(["copy", "append", "initialize"] as (keyof Buttons)[]).map(name => tooltip(name))}
+      </div>
+      {/* <Tooltip
         arrow
-        open={openTip}
-        onClose={()=>setOpenTip(false)}
+        open={openTip.copy}
+        onClose={()=>setOpenTip(s => ({...s, copy: false}))}
         disableHoverListener
-        placement="left"
+        placement="top"
         title="copied!"
       >
           <Button
-            disabled={allentries.length === 0}
-            onClick={handleClick}
+            onClick={handleClick("copy")}
           >
             copy
           </Button>
@@ -66,14 +103,14 @@ const JSONoutput: FC = () => {
       </Tooltip>
       <Tooltip
         arrow
-        open={openTip}
-        onClose={()=>setOpenTip(false)}
+        open={openTip.append}
+        onClose={()=>setOpenTip(s => ({...s, append: false}))}
         disableHoverListener
-        placement="left"
-        title="copied!"
+        placement="top"
+        title="appended!"
       >
           <Button
-            disabled={allentries.length === 0}
+            disabled={output.length === 0}
             onClick={importClick("append")}
           >
             import(append)
@@ -84,16 +121,16 @@ const JSONoutput: FC = () => {
         open={openTip}
         onClose={()=>setOpenTip(false)}
         disableHoverListener
-        placement="left"
-        title="copied!"
+        placement="top"
+        title="initialized!"
       >
           <Button
-            disabled={allentries.length === 0}
+            disabled={output.length === 0}
             onClick={importClick("reset")}
           >
-            import(reset)
+            import(initialize)
           </Button>
-      </Tooltip>
+      </Tooltip> */}
       <div className="messages">
         {Object.entries(messages).map(([k,v])=> <div key={k}>{v}</div> )}
       </div>

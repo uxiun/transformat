@@ -32,11 +32,9 @@ const EntryForm: FC = () => {
       sc: useWatchValue.sc?? newForm.sc
     }
     const to = get_by_entry(dedupedEntryMap)(newe)
-    console.log("to", to)
     if (to) {
       setMessage(s => ({...s, alreadyExist: translationTree.confirm.alreadyExist[lang]}))
     } else {
-      console.log("not already exist")
       setMessage(s => ({...s, alreadyExist: ""}))
     }
   }, [useWatchValue])

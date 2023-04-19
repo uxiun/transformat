@@ -56,7 +56,7 @@ export const keyvalueToEntry = ([k,to]: [string,string]): Entry => ({...JSON.par
 export const dedupEntries = (es: Entry[]) => Array.from(new Set(es.map(e => JSON.stringify(e)))).map(str => JSON.parse(str) as Entry)
 
 export const sortAndStringify = (entries: Entry[]) => JSON.stringify(entries.sort((d,f)=> sortManyTimes(d,f)([
-  e => e.from.length,
+  e => - e.from.length,
   e => unicodePointSum(e.from),
   e => {
     const {to, from, ...bools} = e
@@ -89,6 +89,11 @@ export const justDedupEntries = (entries: Entry[]) => {
     })
   )
   const array = Array.from(deduped)
-  return array.map(k => keyvalueToEntry(k))
+  const e = array.map(k => keyvalueToEntry(k))
+  return {
+    entries: e,
+    dedupedMap: deduped
+  }
+
 }
 
