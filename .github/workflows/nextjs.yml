@@ -22,7 +22,7 @@ jobs:
           node-version: 16.8.x
 
       - name: Install NPM packages
-        run: pnpm i --frozen-lockfile
+        run: pnpm i 
 
       - name: Build Next.js app
         run: pnpm run build
