@@ -32,3 +32,25 @@ export const splitIf = <T>(list: T[]) => (splitter: (t: T)=>boolean): [T[], T[]]
       : [d, f]
   return go([[], list])
 }
+export const passOr = <T>(pass: (t: T) => boolean) => <U>(else_return: U) => (if_do: (t: T) => U) => (t: T): U =>
+  pass(t) ? if_do(t) : else_return
+
+export const isEmptyObject = (r: Record<any, any>) => Object.entries(r).length === 0
+
+export const objectSortBy = <U>(compareFn: ([j, ij]: [U, number], [k, il]: [U, number]) => number) => <T>(objects: T[]) => (target: (t: T) => U) => {
+  let order = objects.map((o,i) => [target(o), i] as [U, number]).sort(compareFn)
+  // console.log("objectPropertySort() order =", order)
+  return order.map(([u, i])=> objects[i])
+}
+export const objectPropertySort = <U>(compareFn: ([j, ij]: [U, number], [k, il]: [U, number]) => number) => <T>(property: keyof T) =>  (objects: T[]) => {
+  let order = objects.map((o,i) => [o[property], i] as [U, number]).sort(compareFn)
+  // console.log("objectPropertySort() order =", order)
+  return order.map(([u, i])=> objects[i])
+}
+// const rev = <T,U,K>(f: (t: T) => (u: U) => K) => (paramLast: U) => f(paramLast)
+export const asciiSortFn = ([j,id]: [string, number], [k,il]: [string, number]) => {
+  if ([j,k].sort()[0] === j) return -1
+  else return 0
+}
+export const objectPropertyASCIIsort = objectPropertySort(asciiSortFn)
+export const objectSortByASCIIsort = objectSortBy(asciiSortFn)

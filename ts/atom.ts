@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import { sortManyTimes, unicodePointSum } from "./ts/util.list";
+import { objectSortByASCIIsort, sortManyTimes, unicodePointSum } from "./ts/util.list";
 export type Entry = {
   from: string
   to: string
@@ -55,14 +55,6 @@ export const get_by_entry = (dedupedMap: Map<string, string>) => (e: Entry) => {
 export const keyvalueToEntry = ([k,to]: [string,string]): Entry => ({...JSON.parse(k), to} as Entry)
 export const dedupEntries = (es: Entry[]) => Array.from(new Set(es.map(e => JSON.stringify(e)))).map(str => JSON.parse(str) as Entry)
 
-export const sortAndStringify = (entries: Entry[]) => JSON.stringify(entries.sort((d,f)=> sortManyTimes(d,f)([
-  e => - e.from.length,
-  e => unicodePointSum(e.from),
-  e => {
-    const {to, from, ...bools} = e
-    return unicodePointSum(JSON.stringify(bools))
-  }
-])))
 
 export const addEntriesDeduping = (dedupedEntryMap: Map<string, string>) => (entries: Entry[]) => {
   const deduped = new Map([
@@ -97,3 +89,12 @@ export const justDedupEntries = (entries: Entry[]) => {
 
 }
 
+
+export const sortAndStringify = (entries: Entry[]) => JSON.stringify(objectSortByASCIIsort(entries)(k => k.from)
+  .reverse()
+  .sort((d,f)=> sortManyTimes(d,f)([
+  e => {
+    const {to, from, ...bools} = e
+    return unicodePointSum(JSON.stringify(bools))
+  }
+])))
