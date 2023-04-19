@@ -6,9 +6,12 @@ export default function Home() {
     <div
       className="services"
     >
-      <div>
-        <Link href={"/TextRewriter"}>JSON formmater for Text Rewriter Extension</Link>
-      </div>
+      <>
+        <h1>transformat</h1>
+      </>
+      <>
+        <h2><Link href={"/TextRewriter"}>JSON formmater for Text Rewriter Extension</Link></h2>
+      </>
     </div>
   )
 }
