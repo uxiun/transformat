@@ -13,7 +13,72 @@ export const sortManyTimes = <T>(a: T, b: T) => (compareFns: ((t: T) => number)[
     (fn => fn(a) - fn(b))
     (comparedResult => comparedResult != 0)
     (0)
-export const unicodePointSum = (str: string) => [...str].reduce((sum, char)=> sum + (char.codePointAt(0)??0) , 0)
+
+export const groupByForSet = <T>(sett: Set<T>) => <U>(groupingFn: (t: T)=>U) => {
+  const m: Map<U, Set<T>> = new Map()
+  sett.forEach(t => {
+    const u = groupingFn(t)
+    const got = m.get(u)
+    if (!!got) {
+      m.set(u, got.add(t))
+    } else {
+      m.set(u, new Set([t]))
+    }
+  })
+  return m;
+}
+
+export const groupByForList = <T>(list: T[]) => <U>(groupingFn: (t: T)=>U) => {
+  const m: Map<U, T[]> = new Map()
+  list.forEach(t => {
+    const u = groupingFn(t)
+    const got = m.get(u)
+    if (!!got) {
+      m.set(u, [...got, t])
+    } else {
+      m.set(u, [t])
+    }
+  })
+  return m;
+}
+
+export const sortManyTimesByGrouping = <T>(list: T[]) => (sortFns: (
+  (t1: T) => number
+)[]): T[] => {
+  const go = (fni: number) => (list: T[]): T[] => {
+    const fn = sortFns.at(fni)
+    return !!fn ?
+      [...groupByForList(list)(fn).entries()].map(([k,v]): [number, T[]]=>
+        v.length > 1 ?
+          [k, go(fni+1)(v)]
+          : [k, v])
+        .sort(([m, _], [n, __]) => m - n)
+        .flatMap(([k, v]) => v)
+      : list
+  }
+  return go(0)(list)
+  // sortFns.reduce((s, fn) => [...groupByForList(list)(t => fn(t)).entries].map(([key, v])=> ))
+}
+
+export const sortFnAsFarFromZero = (start: number, over: number) => <T>(sortFn: (a: T, b: T, i: number) => number) => (a: T, b: T): number => {
+  if (start < over) {
+    const v = sortFn(a, b, start);
+    return v == 0 ? sortFnAsFarFromZero(start+1, over)(sortFn)(a, b) : v
+  } else {
+    return 0
+  }
+}
+
+export const consoler = (label: string) => <T>(x: T): T => {
+  console.log(label, x)
+  return x;
+}
+
+// export const sortManyTimesByPair = <T>(list: T[]) => (sortFns: (
+//   (a: T, b: T)=> number
+// )[]) =>
+// export const unicodePointSum = (str: string) => [...str].reduce((sum, char)=> sum + (char.codePointAt(0)??0) , 0)
+// export const unicodePointsForSort = (str: string) => [...str].reduce((point, c, i) => c.codePointAt())
 
 
 export const copyToClipboard = async(text: string) => {

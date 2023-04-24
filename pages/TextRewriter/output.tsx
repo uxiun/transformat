@@ -27,7 +27,10 @@ const JSONoutput: FC = () => {
     initialize: false
   })
   useEffect(()=>{
+    const t0 = performance.now()
     setOutput(sortAndStringify(allentries))
+    const t1 = performance.now()
+    console.log(`sort and output of ${allentries.length} entries took ${t1 - t0}ms`)
     setMessages(s => ({...s, parseError: ""}))
   }, [allentries])
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import { objectSortByASCIIsort, sortManyTimes, unicodePointSum } from "./ts/util.list";
+import { consoler, groupByForList, groupByForSet, objectSortByASCIIsort, sortFnAsFarFromZero, sortManyTimes, sortManyTimesByGrouping,  } from "./ts/util.list";
 export type Entry = {
   from: string
   to: string
@@ -90,11 +90,13 @@ export const justDedupEntries = (entries: Entry[]) => {
 }
 
 
-export const sortAndStringify = (entries: Entry[]) => JSON.stringify(objectSortByASCIIsort(entries)(k => k.from)
-  .reverse()
-  .sort((d,f)=> sortManyTimes(d,f)([
-  e => {
-    const {to, from, ...bools} = e
-    return unicodePointSum(JSON.stringify(bools))
-  }
-])))
+export const sortAndStringify = (entries: Entry[]) => {
+  const sorted = [...groupByForList(entries)(e => e.from.length).entries()]
+    .map(([n, es]): [number, Entry[]]=> [n, es.sort(sortFnAsFarFromZero(0, n)(
+      (a, b, i)=>  ((a.from.codePointAt(i)??0) - (b.from.codePointAt(i)??0))
+    ))
+    ])
+    .sort(([n, _], [m, __]) => m - n)
+    .flatMap(([n, es]) => es)
+  return JSON.stringify(sorted)
+}
