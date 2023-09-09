@@ -1,5 +1,22 @@
-import { Entry, addEntriesDeduping, allentriesAtom, dedupedEntryMapAtom, justDedupEntries, sortAndStringify, uilanguageAtom } from "@/ts/atom"
+import {
+  Entry,
+  NgramIndexesForEntry,
+  addEntriesDeduping,
+  allentriesAtom,
+  dedupedEntryMapAtom,
+  defaultNgramIndexesForEntry,
+  deleteEntriesFromIndex,
+  entryIdDedupedMapAtom,
+  getDedupKey,
+  justDedupEntries,
+  nextEntryIdAtom,
+  ngramIndexesForEntryAtom,
+  ngramIndexingSequenceEntry,
+  sortAndStringify,
+  uilanguageAtom,
+} from "@/ts/atom"
 import { translationTree } from "@/ts/lang"
+import { StringNumberTuple } from "@/ts/ts/text"
 import { copyToClipboard } from "@/ts/ts/util.list"
 import { Button, InputAdornment, TextField, Tooltip } from "@mui/material"
 import { useAtom } from "jotai"
@@ -12,8 +29,12 @@ const JSONoutput: FC = () => {
   const [lang] = useAtom(uilanguageAtom)
   const [allentries, setAllEntries] = useAtom(allentriesAtom)
   const [dedupedEntryMap, setDedupedEntryMap] = useAtom(dedupedEntryMapAtom)
+  const [atomNextEntryId, setatomNextEntryId] = useAtom(nextEntryIdAtom)
+  const [atomIndex, setatomIndex] = useAtom(ngramIndexesForEntryAtom)
+  const [atomEntryIdDedupedMap, setatomEntryIdDedupedMap] = useAtom(entryIdDedupedMapAtom)
+
   const [messages, setMessages] = useState({
-    parseError: ""
+    parseError: "",
   })
   const [output, setOutput] = useState<string>(sortAndStringify(allentries))
   type Buttons = {
@@ -24,14 +45,15 @@ const JSONoutput: FC = () => {
   const [openTip, setOpenTip] = useState<Buttons>({
     copy: false,
     append: false,
-    initialize: false
+    initialize: false,
   })
-  useEffect(()=>{
+
+  useEffect(() => {
     const t0 = performance.now()
     setOutput(sortAndStringify(allentries))
     const t1 = performance.now()
     console.log(`sort and output of ${allentries.length} entries took ${t1 - t0}ms`)
-    setMessages(s => ({...s, parseError: ""}))
+    setMessages(s => ({ ...s, parseError: "" }))
   }, [allentries])
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setOutput(e.target.value)
@@ -42,47 +64,64 @@ const JSONoutput: FC = () => {
     } else {
       importClick(attr)()
     }
-    setOpenTip(s => ({...s, [attr]: true}))
+    setOpenTip(s => ({ ...s, [attr]: true }))
   }
-  type ImportType = "append"|"initialize"
+  type ImportType = "append" | "initialize"
   const importClick = (importType: ImportType) => () => {
     try {
       const res: Entry[] = JSON.parse(output)
       console.log(res)
       if (importType == "initialize") {
-        const {entries, dedupedMap} = justDedupEntries(res)
+        const { entries, dedupedMap } = justDedupEntries(res)
         console.log("imported entries:", entries)
         setAllEntries(entries)
         setDedupedEntryMap(dedupedMap)
+
+        setatomEntryIdDedupedMap(m => new Map(entries.map((e, i) => [getDedupKey(e), i])))
+        setatomIndex(indexes => ngramIndexingSequenceEntry(0, defaultNgramIndexesForEntry)(entries))
+        setatomNextEntryId(entries.length)
       } else {
-        const {entries, dedupedMap} = addEntriesDeduping(dedupedEntryMap)(res)
+        const { entries, dedupedMap } = addEntriesDeduping(dedupedEntryMap)(res)
         console.log("imported entries:", entries)
         setDedupedEntryMap(dedupedMap)
         setAllEntries(entries)
+
+        const newEntryIdMapSrc = [...atomEntryIdDedupedMap.entries()]
+        const newEntryMapSpreaded = entries.map(
+          (e, i) => [getDedupKey(e), atomNextEntryId + i] as StringNumberTuple
+        )
+        const newEntryMap = new Map(newEntryMapSpreaded)
+        const spreaded = [...atomEntryIdDedupedMap.entries()]
+        const duplicateEntryIds = spreaded
+          .filter(([key, id]) => newEntryMap.get(key) !== undefined)
+          .map(([key, id]) => id)
+        setatomEntryIdDedupedMap(m => new Map([...spreaded, ...newEntryMapSpreaded]))
+        setatomIndex(indexes => ({
+          from: indexes.from.map(index => deleteEntriesFromIndex(duplicateEntryIds)(index)),
+          to: indexes.to.map(index => deleteEntriesFromIndex(duplicateEntryIds)(index)),
+        }))
+        setatomNextEntryId(id => id + entries.length)
       }
     } catch {
-      setMessages(s => ({...s, parseError: translationTree.error.parse[lang]}))
+      setMessages(s => ({ ...s, parseError: translationTree.error.parse[lang] }))
     }
   }
   const tooltip = function ToolTipWrap(name: keyof Buttons) {
-    return(
+    return (
       <Tooltip
         arrow
         open={openTip[name]}
-        onClose={()=>setOpenTip(s => ({...s, [name]: false}))}
+        onClose={() => setOpenTip(s => ({ ...s, [name]: false }))}
         disableHoverListener
         placement="top"
-        title={`${name}!`}
-      >
-          <Button
-            onClick={handleClick(name)}
-          >
-            {name == "copy" ? name : `import (${name})`}
-          </Button>
+        title={`${name}!`}>
+        <Button variant="contained" onClick={handleClick(name)}>
+          {name == "copy" ? name : `import (${name})`}
+        </Button>
       </Tooltip>
     )
   }
-  return(
+  return (
     <div>
       <h3>JSON({allentries.length})</h3>
       <div>{allentries.length >= 0 ? "" : ""}</div>
@@ -135,7 +174,9 @@ const JSONoutput: FC = () => {
           </Button>
       </Tooltip> */}
       <div className="messages">
-        {Object.entries(messages).map(([k,v])=> <div key={k}>{v}</div> )}
+        {Object.entries(messages).map(([k, v]) => (
+          <div key={k}>{v}</div>
+        ))}
       </div>
       <TextField
         fullWidth
@@ -144,7 +185,7 @@ const JSONoutput: FC = () => {
         sx={{
           maxHeight: 500,
           overflowY: "scroll",
-          fontFamily: "monospace"
+          fontFamily: "monospace",
         }}
         // InputProps={{
         //   startAdornment: <InputAdornment position="start">

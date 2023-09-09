@@ -42,6 +42,20 @@ export const groupByForList = <T>(list: T[]) => <U>(groupingFn: (t: T)=>U) => {
   return m;
 }
 
+export const groupByMapForList = <T>(list: T[]) => <U>(groupingFn: (t: T)=>U) => <V>(modifier: (t: T)=>V) => {
+  const m: Map<U, V[]> = new Map()
+  list.forEach(t => {
+    const u = groupingFn(t)
+    const got = m.get(u)
+    if (got != undefined) {
+      m.set(u, [...got, modifier(t)])
+    } else {
+      m.set(u, [modifier(t)])
+    }
+  })
+  return m;
+}
+
 export const sortManyTimesByGrouping = <T>(list: T[]) => (sortFns: (
   (t1: T) => number
 )[]): T[] => {
