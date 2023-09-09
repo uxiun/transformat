@@ -12,7 +12,7 @@ import {
   ngramIndexesForEntryAtom,
   uilanguageAtom,
 } from "@/ts/atom"
-import { Box, Button, FormControl, IconButton, Input, TextField, Typography } from "@mui/material"
+import { Box, Button, FormControl, IconButton, Input, TextField, Typography, Checkbox, FormControlLabel } from "@mui/material"
 import EditIcon from '@mui/icons-material/Edit';
 import { useAtom } from "jotai"
 import { FC, useMemo, useState } from "react"
@@ -21,6 +21,7 @@ import { concernLength, ngramScoreMap } from "@/ts/ts/text"
 import { caseUndefined, mapUnions, mapUnionsToAverage } from "@/ts/ts/map"
 import { LimitN } from "@/ts/type"
 import { translationTree } from "@/ts/lang"
+import { ketaDirty, ketaDirtyDisplay } from "@/ts/ts/number";
 
 const Entries: FC = () => {
   return (
@@ -66,6 +67,8 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
   const [atomEntryIdDedupedMap] = useAtom(entryIdDedupedMapAtom)
   const [atomDedupedMap] = useAtom(dedupedEntryMapAtom)
   const [atomUIlanguage] = useAtom(uilanguageAtom)
+
+  const [showPoint, setShowPoint] = useState(false)
   const lengthmaps = getLengthMap(atomEntryIdDedupedMap, atomDedupedMap)
 
   const ngramScoreMap_concernLength =
@@ -74,7 +77,7 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
       mapUnionsToAverage(
         atomIndex[fromto].map(index => {
           const ngramScored = ngramScoreMap(index)(inputting[fromto])
-          console.log(`ngramScored${index.n}`, ngramScored)
+          // console.log(`ngramScored${index.n}`, ngramScored)
           return ngramScored
 
         })
@@ -83,9 +86,9 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
     (inputting[fromto].length, lengthmaps[fromto])
 
   const similarfrom = useMemo(() => {
-    console.log("atom index", atomIndex)
+    // console.log("atom index", atomIndex)
     const scored = ngramScoreMap_concernLength("from")
-    console.log("scored", scored)
+    // console.log("scored", scored)
     return [...scored.entries()].sort((d, f) => f[1] - d[1]).slice(0, prop.maxShowNumber)
   }, [allentries, inputting.from])
   const similarto = useMemo(() => {
@@ -97,6 +100,10 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
     from: similarfrom,
     to: similarto
   }
+  const cssflexCenter = {
+    display: "flex"
+    ,alignItems:"center"
+  }
 
   const similarList = (fromto: keyof FromToObj) => function listfunc() {
     return <Box>
@@ -105,13 +112,13 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
       >{fromto} </Typography>
       <Box>
         {similarCalc[fromto].map(([id, score]) => {
-          console.log("atomEntryIdDedupedMap", atomEntryIdDedupedMap)
+          // console.log("atomEntryIdDedupedMap", atomEntryIdDedupedMap)
           const fkey = getDedupKeyById(id, atomEntryIdDedupedMap)
           return fkey === undefined ? (
             <Box>cannot get id</Box>
           ) : (
-            <Box>
-              {score}点
+            <Box {...cssflexCenter}>
+              {showPoint? `${ketaDirtyDisplay("round", 5)(score)}`: ``}
               {caseUndefined(atomDedupedMap.get(fkey ?? ""))(v => {
                 const e: Entry = { ...JSON.parse(fkey), to: v }
                 return <EachEntry entry={e} />
@@ -124,11 +131,26 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
   }
   return (
     <Box>
-      <Typography
-        variant="h4"
+      <Box
+        {...cssflexCenter}
       >
-        {translationTree.headerTitle.list.similar[atomUIlanguage]}
-      </Typography>
+        <Typography
+          variant="h4"
+        >
+          {translationTree.headerTitle.list.similar[atomUIlanguage]}
+        </Typography>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={!!showPoint}
+              onChange={()=> setShowPoint(d => !d)}
+              value="showPoint"
+              />
+
+            }
+          label={translationTree.showPoint[atomUIlanguage]}
+        />
+      </Box>
       <Box>
         {[
           similarList("from")()

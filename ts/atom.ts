@@ -194,7 +194,7 @@ export const entryIdDedupedMapAtom = atom<EntryIdDedupedMap>(new Map())
 export const ngramIndexingSequenceEntry =
   (startId: number, indexes: NgramIndexesForEntry) =>
   <T extends FromToObj>(entries: T[]): NgramIndexesForEntry => {
-    console.log("ngramIndexingSequenceEntry, entries:", entries)
+    // console.log("ngramIndexingSequenceEntry, entries:", entries)
     const calc = (key: keyof FromToObj) =>
       indexes[key].map(index => ngramIndexingSequence(startId, index)(entries.map(e => e[key])))
     return {

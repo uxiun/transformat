@@ -67,6 +67,16 @@ export const translationTree = {
         ja: "無効"
       }
     }
-  }
+  },
+  unit: {
+    point: {
+      en: "point"
+      ,ja: "点"
+    },
+  },
+  showPoint: {
+    en: "show match point",
+    ja: "一致度表示"
+  },
 }
 

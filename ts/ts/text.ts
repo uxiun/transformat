@@ -25,15 +25,15 @@ export const ngramIndexing =
   (index: NgramIndex) =>
   (textid: number, text: string): NgramIndex => {
     const f = [...Array(text.length).keys()]
-    console.log("ngramIndexing called")
-    console.log("textid:", textid, "text:", text)
+    // console.log("ngramIndexing called")
+    // console.log("textid:", textid, "text:", text)
     return f
       .map(i => text.slice(i, i + index.n))
       .filter(seg => seg.length == index.n)
       .reduce((s, seg, i) => {
         // const data = index.index.get(s)
-        console.log("reduce loop [" + i + "]")
-        console.log("current index - s", s)
+        // console.log("reduce loop [" + i + "]")
+        // console.log("current index - s", s)
         s.index.set(
           seg,
           // ...(index.index.get(seg)?.entries() ?? []),
@@ -128,8 +128,8 @@ export const ngramScoreMap =
   (index: NgramIndex) =>
   (text: string): IdScoreMap => {
     const es = [...ngramTargetFormat(index.n, text).m.entries()]
-    console.info(es)
-    console.log("es=", es)
+    // console.info(es)
+    // console.log("es=", es)
     return map_map(
       mapUnions(
         es.map(([ngram, positions], i, arr) =>

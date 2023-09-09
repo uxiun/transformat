@@ -81,8 +81,8 @@ const RecycleForm: FC<RecycleFormProp> = prop => {
     }
   }, [useWatchValue, allentries])
   const addEntry = (f: Form) => {
-    console.log("addEntry called")
-    console.log("atomNextEntryId", atomNextEntryId)
+    // console.log("addEntry called")
+    // console.log("atomNextEntryId", atomNextEntryId)
     const { to, ...fkey } = f
     const key = JSON.stringify(fkey)
     const matchedEntry = atomMatchingEntry

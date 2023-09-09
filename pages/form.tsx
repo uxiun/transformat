@@ -15,7 +15,7 @@ const ParseForm: FC = () => {
   const [parseResult, setParseResult] = useState("")
   const onchange = (str: string) => {
     const parsed = toListIndentedFormat("   ")(str)
-    console.log("parsed=", parsed)
+    // console.log("parsed=", parsed)
     setParseResult(JSON.stringify(parsed))
   }
   useEffect(()=>{
