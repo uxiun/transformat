@@ -16,9 +16,11 @@ import {
   nextEntryIdAtom,
   ngramIndexesForEntryAtom,
   ngramIndexingEntry,
+  searchDelayAtom,
   uilanguageAtom,
   updateIndexList,
 } from "@/ts/atom"
+import { useDebounce } from "@/ts/hook"
 import { translationTree } from "@/ts/lang"
 import { list_modify } from "@/ts/ts/list"
 import { caseUndefined } from "@/ts/ts/map"
@@ -46,18 +48,20 @@ const RecycleForm: FC<RecycleFormProp> = prop => {
   const [atomIndex, setatomIndex] = useAtom(ngramIndexesForEntryAtom)
   const [atomNextEntryId, setatomNextEntryId] = useAtom(nextEntryIdAtom)
   const [atomEntryIdDedupedMap, setatomEntryIdDedupedMap] = useAtom(entryIdDedupedMapAtom)
+  const [atomSearchDelay] = useAtom(searchDelayAtom)
 
   const [entriesForJSON, setEntriesForJSON] = useState(allentries)
   type Form = Entry
   const { control, handleSubmit, formState } = useForm<Form>({
     defaultValues: prop.defaultValues,
   })
-  const useWatchValue = useWatch({ control })
+  const realtimeUseWatchValue = useWatch({ control })
   const [dedupedEntryMap, setDedupedEntryMap] = useAtom(dedupedEntryMapAtom)
   const [isCheckboxEnable, setIsCheckboxEnable] = useState(false)
   type AddButtonContent = "add" | "update"
   const [addButtonContent, setAddButtonContent] = useState<AddButtonContent>("add")
   const [openTip, setOpenTip] = useState<TooltipOperationBools>(defaultTooltipOperationBools)
+  const useWatchValue = useDebounce(atomSearchDelay, realtimeUseWatchValue)
 
   useEffect(() => {
     const newe: Entry = {
@@ -80,6 +84,7 @@ const RecycleForm: FC<RecycleFormProp> = prop => {
       setatomMatchingEntry(newe)
     }
   }, [useWatchValue, allentries])
+
   const addEntry = (f: Form) => {
     // console.log("addEntry called")
     // console.log("atomNextEntryId", atomNextEntryId)

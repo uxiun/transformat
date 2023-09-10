@@ -10,18 +10,33 @@ import {
   inputtingEntryAtom,
   newEntryAtom,
   ngramIndexesForEntryAtom,
+  searchDelayAtom,
   uilanguageAtom,
 } from "@/ts/atom"
-import { Box, Button, FormControl, IconButton, Input, TextField, Typography, Checkbox, FormControlLabel } from "@mui/material"
-import EditIcon from '@mui/icons-material/Edit';
+import {
+  Box,
+  Button,
+  FormControl,
+  IconButton,
+  Input,
+  TextField,
+  Typography,
+  Checkbox,
+  FormControlLabel,
+} from "@mui/material"
+import EditIcon from "@mui/icons-material/Edit"
 import { useAtom } from "jotai"
-import { FC, useMemo, useState } from "react"
+import React, { FC, ReactEventHandler, useEffect, useMemo, useState } from "react"
 import RecycleForm from "./recycleForm"
 import { concernLength, ngramScoreMap } from "@/ts/ts/text"
 import { caseUndefined, mapUnions, mapUnionsToAverage } from "@/ts/ts/map"
-import { LimitN } from "@/ts/type"
+import { LimitN, SimilarForm, defaultSimilarForm } from "@/ts/type"
 import { translationTree } from "@/ts/lang"
-import { ketaDirty, ketaDirtyDisplay } from "@/ts/ts/number";
+import { ketaDirty, ketaDirtyDisplay } from "@/ts/ts/number"
+import { Controller, useForm, useWatch } from "react-hook-form"
+import { useDebounce } from "@/ts/hook"
+import SearchForm from "./searchForm"
+import { spacecss } from "@/ts/css"
 
 const Entries: FC = () => {
   return (
@@ -69,21 +84,19 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
   const [atomUIlanguage] = useAtom(uilanguageAtom)
 
   const [showPoint, setShowPoint] = useState(false)
+
   const lengthmaps = getLengthMap(atomEntryIdDedupedMap, atomDedupedMap)
 
-  const ngramScoreMap_concernLength =
-  (fromto: keyof FromToObj) =>
+  const ngramScoreMap_concernLength = (fromto: keyof FromToObj) =>
     concernLength(
       mapUnionsToAverage(
         atomIndex[fromto].map(index => {
           const ngramScored = ngramScoreMap(index)(inputting[fromto])
           // console.log(`ngramScored${index.n}`, ngramScored)
           return ngramScored
-
         })
       )
-    )
-    (inputting[fromto].length, lengthmaps[fromto])
+    )(inputting[fromto].length, lengthmaps[fromto])
 
   const similarfrom = useMemo(() => {
     // console.log("atom index", atomIndex)
@@ -98,65 +111,66 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
 
   const similarCalc = {
     from: similarfrom,
-    to: similarto
+    to: similarto,
   }
   const cssflexCenter = {
-    display: "flex"
-    ,alignItems:"center"
+    display: "flex",
+    alignItems: "center",
   }
 
-  const similarList = (fromto: keyof FromToObj) => function listfunc() {
-    return <Box>
-      <Typography
-        variant="h5"
-      >{fromto} </Typography>
-      <Box>
-        {similarCalc[fromto].map(([id, score]) => {
-          // console.log("atomEntryIdDedupedMap", atomEntryIdDedupedMap)
-          const fkey = getDedupKeyById(id, atomEntryIdDedupedMap)
-          return fkey === undefined ? (
-            <Box>cannot get id</Box>
-          ) : (
-            <Box {...cssflexCenter}>
-              {showPoint? `${ketaDirtyDisplay("round", 5)(score)}`: ``}
-              {caseUndefined(atomDedupedMap.get(fkey ?? ""))(v => {
-                const e: Entry = { ...JSON.parse(fkey), to: v }
-                return <EachEntry entry={e} />
-              }, <Box>stringified key not found</Box>)}
-            </Box>
-          )
-        })}
-      </Box>
-    </Box>
-  }
+  const similarList = (fromto: keyof FromToObj) =>
+    function listfunc() {
+      return (
+        <Box>
+          <Typography variant="h5">{fromto} </Typography>
+          <Box>
+            {similarCalc[fromto].map(([id, score]) => {
+              // console.log("atomEntryIdDedupedMap", atomEntryIdDedupedMap)
+              const fkey = getDedupKeyById(id, atomEntryIdDedupedMap)
+              return fkey === undefined ? (
+                <Box>cannot get id</Box>
+              ) : (
+                <Box {...cssflexCenter}>
+                  {showPoint ? `${ketaDirtyDisplay("round", 5)(score)}` : ``}
+                  {caseUndefined(atomDedupedMap.get(fkey ?? ""))(v => {
+                    const e: Entry = { ...JSON.parse(fkey), to: v }
+                    return <EachEntry entry={e} />
+                  }, <Box>stringified key not found</Box>)}
+                </Box>
+              )
+            })}
+          </Box>
+        </Box>
+      )
+    }
+
   return (
     <Box>
       <Box
-        {...cssflexCenter}
-      >
-        <Typography
-          variant="h4"
-        >
-          {translationTree.headerTitle.list.similar[atomUIlanguage]}
-        </Typography>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={!!showPoint}
-              onChange={()=> setShowPoint(d => !d)}
-              value="showPoint"
+        sx={{
+          display: "flex",
+          ...spacecss.similarForm,
+        }}>
+        <Box fontSize={"2em"}>{translationTree.headerTitle.list.similar[atomUIlanguage]}</Box>
+        <Box
+          sx={{
+            display: "flex",
+            paddingX: 2,
+          }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={!!showPoint}
+                onChange={() => setShowPoint(d => !d)}
+                value="showPoint"
               />
-
             }
-          label={translationTree.showPoint[atomUIlanguage]}
-        />
+            label={translationTree.showPoint[atomUIlanguage]}
+          />
+          <SearchForm />
+        </Box>
       </Box>
-      <Box>
-        {[
-          similarList("from")()
-          ,similarList("to")()
-        ]}
-      </Box>
+      <Box>{[similarList("from")(), similarList("to")()]}</Box>
     </Box>
   )
 }
@@ -208,16 +222,13 @@ const EachEntry: FC<PropEntry> = ({ entry }) => {
   const [formVisible, setFormVisible] = useState(false)
 
   return (
-    <Box
-      display={"flex"}
-      alignItems={"center"}
-    >
+    <Box display={"flex"} alignItems={"center"}>
       <IconButton
         size="small"
         onClick={() => {
           setFormVisible(s => !s)
         }}>
-          <EditIcon fontSize="small"/>
+        <EditIcon fontSize="small" />
       </IconButton>
       {formVisible ? (
         <RecycleForm hideMe={() => setFormVisible(false)} defaultValues={entry} />

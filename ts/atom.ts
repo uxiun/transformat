@@ -27,6 +27,7 @@ export type Entry = {
 }
 const langs = ["ja", "en"] as const
 type Lang = (typeof langs)[number]
+export const searchDelayAtom = atom(300)
 const entryAttributeTranslations: Record<keyof Entry, Record<Lang, string>> = {
   from: {
     en: "from",

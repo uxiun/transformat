@@ -78,5 +78,16 @@ export const translationTree = {
     en: "show match point",
     ja: "一致度表示"
   },
+  searchDelay: {
+    label:
+    {
+      en: "search delay",
+      ja: "検索遅延"
+    },
+    help: {
+      en: "increase this if input lagged",
+      ja: "入力がもたつくなら数値を大きく"
+    }
+  }
 }
 

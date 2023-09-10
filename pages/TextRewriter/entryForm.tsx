@@ -1,5 +1,5 @@
 import validator from "validator";
-import { Entry, TooltipOperationBools, allentriesAtom, dedupEntries, dedupedEntryMapAtom, defaultEntry, defaultTooltipOperationBools, entryAttributeReadable, entryIdDedupedMapAtom, get_by_entry, inputtingEntryAtom, keyvalueToEntry, matchingEntryAtom, newEntryAtom, nextEntryIdAtom, ngramIndexesForEntryAtom, ngramIndexingEntry, uilanguageAtom } from "@/ts/atom";
+import { Entry, TooltipOperationBools, allentriesAtom, dedupEntries, dedupedEntryMapAtom, defaultEntry, defaultTooltipOperationBools, entryAttributeReadable, entryIdDedupedMapAtom, get_by_entry, inputtingEntryAtom, keyvalueToEntry, matchingEntryAtom, newEntryAtom, nextEntryIdAtom, ngramIndexesForEntryAtom, ngramIndexingEntry, searchDelayAtom, uilanguageAtom } from "@/ts/atom";
 import { translationTree } from "@/ts/lang";
 import { Box, Button, Checkbox, FormControlLabel, TextField, Tooltip } from "@mui/material";
 import { useAtom } from "jotai";
@@ -8,6 +8,7 @@ import { Controller, useForm, useWatch } from "react-hook-form";
 import Entries from "./entries";
 import JSONoutput from "./output";
 import { ngramIndexing, ngramSegmentify } from "@/ts/ts/text";
+import { useDebounce } from "@/ts/hook";
 
 const EntryForm: FC = () => {
   const [message, setMessage] = useState<MessageBoxProps>({
@@ -23,40 +24,46 @@ const EntryForm: FC = () => {
   const [atomIndex, setatomIndex] = useAtom(ngramIndexesForEntryAtom)
   const [atomNextEntryId, setatomNextEntryId] = useAtom(nextEntryIdAtom)
   const [atomEntryIdDedupedMap, setatomEntryIdDedupedMap] = useAtom(entryIdDedupedMapAtom)
-  
+  const [atomSearchDelay] = useAtom(searchDelayAtom)
+
 
   const [entriesForJSON, setEntriesForJSON] = useState(allentries)
   type Form = Entry
   const {control, handleSubmit, formState} = useForm<Form>({
     defaultValues: defaultEntry
   })
-  const useWatchValue = useWatch({control})
+  const realtimeUseWatchValue = useWatch({control})
+  const useWatchValue = useDebounce(atomSearchDelay, realtimeUseWatchValue)
   const [dedupedEntryMap, setDedupedEntryMap] = useAtom(dedupedEntryMapAtom)
   const [isCheckboxEnable, setIsCheckboxEnable] = useState(false);
   type AddButtonContent = "add"|"update"
   const [addButtonContent, setAddButtonContent] = useState<AddButtonContent>("add");
   const [openTip, setOpenTip] = useState<TooltipOperationBools>(defaultTooltipOperationBools)
-  
+
   useEffect(()=>{
-    const newe: Entry = {
-      from: useWatchValue.from?? newForm.from,
-      to: useWatchValue.to?? newForm.to,
-      ic: useWatchValue.ic?? newForm.ic,
-      mw: useWatchValue.mw?? newForm.mw,
-      sc: useWatchValue.sc?? newForm.sc
-    }
-    setatomInputtingEntry(newe);
-    setIsCheckboxEnable(!!newe.from.match(/.*[a-zA-Z].*/))
-    const to = get_by_entry(dedupedEntryMap)(newe)
-    if (typeof to=="string") {
-      setMessage(s => ({...s, alreadyExist: translationTree.confirm.alreadyExist[lang]}))
-      setAddButtonContent("update")
-      setatomMatchingEntry({...newe, to})
-    } else {
-      setMessage(s => ({...s, alreadyExist: ""}))
-      setAddButtonContent("add")
-      setatomMatchingEntry(newe)
-    }
+    const debounce = setTimeout(()=>{
+
+      const newe: Entry = {
+        from: useWatchValue.from?? newForm.from,
+        to: useWatchValue.to?? newForm.to,
+        ic: useWatchValue.ic?? newForm.ic,
+        mw: useWatchValue.mw?? newForm.mw,
+        sc: useWatchValue.sc?? newForm.sc
+      }
+      setatomInputtingEntry(newe);
+      setIsCheckboxEnable(!!newe.from.match(/.*[a-zA-Z].*/))
+      const to = get_by_entry(dedupedEntryMap)(newe)
+      if (typeof to=="string") {
+        setMessage(s => ({...s, alreadyExist: translationTree.confirm.alreadyExist[lang]}))
+        setAddButtonContent("update")
+        setatomMatchingEntry({...newe, to})
+      } else {
+        setMessage(s => ({...s, alreadyExist: ""}))
+        setAddButtonContent("add")
+        setatomMatchingEntry(newe)
+      }
+    }, 100);
+    return ()=> clearTimeout(debounce)
   }, [useWatchValue, allentries])
   const addEntry = (f: Form) => {
     const {to, ...fkey} = f
@@ -107,7 +114,7 @@ const EntryForm: FC = () => {
       console.log("failed to delete")
       setMessage(s => ({...s, operation: translationTree.tooltip.fail("delete")[lang]}))
     }
-    
+
     const array = Array.from(dedupedEntryMap)
     const map = new Map(array)
     setDedupedEntryMap(map)
@@ -120,7 +127,7 @@ const EntryForm: FC = () => {
     <FormControlLabel control={
       <Controller
         name={name}
-        control={control} 
+        control={control}
         render={({field})=>(
           <Checkbox {...field}
             checked={!!field.value}
@@ -134,7 +141,7 @@ const EntryForm: FC = () => {
   )}
 
   const handleClick =
-  // : MouseEventHandler<HTMLButtonElement> = e => 
+  // : MouseEventHandler<HTMLButtonElement> = e =>
   (name: keyof TooltipOperationBools) => {
     const entry: Entry = {
       from: useWatchValue.from?? newForm.from,
@@ -204,14 +211,14 @@ const EntryForm: FC = () => {
             <TextField {...field}
               label={readableAttr("from")}
               error={!!formState.errors.from}
-              helperText={formState.errors.from && formState.errors.from.message || !formState.isValid && 
+              helperText={formState.errors.from && formState.errors.from.message || !formState.isValid &&
               translationTree.form.helperText.invalid[lang]}
             />
           )}/>
         <Controller
           control={control}
           name="to"
-          
+
           render={({field})=>(
             <TextField {...field}
               label={readableAttr("to")}
