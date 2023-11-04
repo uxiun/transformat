@@ -89,7 +89,9 @@ const InfoComponent: FC = () => {
 				</Button>
 			</div>
 			<div>
-				{show ? [...Object.entries(translationTree.info)].map(o => <p>{o[1][lang]}</p>) : ""}{" "}
+				{show
+					? [...Object.entries(translationTree.info)].map((o, i) => <p key={i}>{o[1][lang]}</p>)
+					: ""}{" "}
 			</div>
 		</div>
 	)

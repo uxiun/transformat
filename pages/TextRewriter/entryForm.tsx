@@ -82,7 +82,15 @@ const EntryForm: FC = () => {
 		}
 		// }, 100)
 		// return () => clearTimeout(debounce)
-	}, [useWatchValue, allentries])
+	}, [
+		useWatchValue,
+		allentries,
+		dedupedEntryMap,
+		lang,
+		newForm,
+		setatomInputtingEntry,
+		setatomMatchingEntry,
+	])
 	const addEntry = (f: Form) => {
 		const { to, ...fkey } = f
 		const key = JSON.stringify(fkey)

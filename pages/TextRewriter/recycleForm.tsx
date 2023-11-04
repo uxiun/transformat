@@ -83,7 +83,15 @@ const RecycleForm: FC<RecycleFormProp> = prop => {
 			setAddButtonContent("add")
 			setatomMatchingEntry(newe)
 		}
-	}, [useWatchValue, allentries])
+	}, [
+		useWatchValue,
+		allentries,
+		dedupedEntryMap,
+		lang,
+		newForm,
+		setatomInputtingEntry,
+		setatomMatchingEntry,
+	])
 
 	const addEntry = (f: Form) => {
 		// console.log("addEntry called")

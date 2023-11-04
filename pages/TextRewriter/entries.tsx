@@ -27,7 +27,7 @@ import {
 } from "@mui/material"
 import EditIcon from "@mui/icons-material/Edit"
 import { useAtom } from "jotai"
-import React, { FC, ReactEventHandler, useEffect, useMemo, useState } from "react"
+import React, { FC, ReactEventHandler, useCallback, useEffect, useMemo, useState } from "react"
 import RecycleForm from "./recycleForm"
 import { concernLength, ngramScoreMap } from "@/ts/ts/text"
 import { caseUndefined, mapUnions, mapUnionsToAverage } from "@/ts/ts/map"
@@ -88,27 +88,30 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
 
 	const lengthmaps = getLengthMap(atomEntryIdDedupedMap, atomDedupedMap)
 
-	const ngramScoreMap_concernLength = (fromto: keyof FromToObj) =>
-		concernLength(
-			mapUnionsToAverage(
-				atomIndex[fromto].map(index => {
-					const ngramScored = ngramScoreMap(index)(inputting[fromto])
-					// console.log(`ngramScored${index.n}`, ngramScored)
-					return ngramScored
-				})
-			)
-		)(inputting[fromto].length, lengthmaps[fromto])
+	const ngramScoreMap_concernLength = useCallback(
+		(fromto: keyof FromToObj) =>
+			concernLength(
+				mapUnionsToAverage(
+					atomIndex[fromto].map(index => {
+						const ngramScored = ngramScoreMap(index)(inputting[fromto])
+						// console.log(`ngramScored${index.n}`, ngramScored)
+						return ngramScored
+					})
+				)
+			)(inputting[fromto].length, lengthmaps[fromto]),
+		[atomIndex]
+	)
 
 	const similarfrom = useMemo(() => {
 		// console.log("atom index", atomIndex)
 		const scored = ngramScoreMap_concernLength("from")
 		// console.log("scored", scored)
 		return [...scored.entries()].sort((d, f) => f[1] - d[1]).slice(0, prop.maxShowNumber)
-	}, [allentries, inputting.from])
+	}, [ngramScoreMap_concernLength, prop.maxShowNumber])
 	const similarto = useMemo(() => {
 		const scored = ngramScoreMap_concernLength("to")
 		return [...scored.entries()].sort((d, f) => f[1] - d[1]).slice(0, prop.maxShowNumber)
-	}, [allentries, inputting.to, inputting.from])
+	}, [ngramScoreMap_concernLength, prop.maxShowNumber])
 
 	const similarCalc = {
 		from: similarfrom,

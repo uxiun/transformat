@@ -19,7 +19,7 @@ const SearchForm: FC = () => {
 
 	useEffect(() => {
 		setAtomSearchDelay(useWatchValue.delay ?? defaultSimilarForm.delay)
-	}, [useWatchValue])
+	}, [useWatchValue, setAtomSearchDelay])
 
 	return (
 		<Box>
