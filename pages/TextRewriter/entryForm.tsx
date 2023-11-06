@@ -17,7 +17,8 @@ import {
 	nextEntryIdAtom,
 	ngramIndexesForEntryAtom,
 	ngramIndexingEntry,
-	searchDelayAtom,
+	searchConfigAtom,
+	topFormEntryAtom,
 	uilanguageAtom,
 } from "@/ts/atom"
 import { translationTree } from "@/ts/lang"
@@ -41,10 +42,11 @@ const EntryForm: FC = () => {
 	const [allentries, setAllEntries] = useAtom(allentriesAtom)
 	const [atomMatchingEntry, setatomMatchingEntry] = useAtom(matchingEntryAtom)
 	const [atomInputtingEntry, setatomInputtingEntry] = useAtom(inputtingEntryAtom)
+	const [atomTopFormEntry, setAtomTopFormEntry] = useAtom(topFormEntryAtom)
 	const [atomIndex, setatomIndex] = useAtom(ngramIndexesForEntryAtom)
 	const [atomNextEntryId, setatomNextEntryId] = useAtom(nextEntryIdAtom)
 	const [atomEntryIdDedupedMap, setatomEntryIdDedupedMap] = useAtom(entryIdDedupedMapAtom)
-	const [atomSearchDelay] = useAtom(searchDelayAtom)
+	const [atomSearchConfig] = useAtom(searchConfigAtom)
 
 	const [entriesForJSON, setEntriesForJSON] = useState(allentries)
 	type Form = Entry
@@ -52,7 +54,7 @@ const EntryForm: FC = () => {
 		defaultValues: defaultEntry,
 	})
 	const realtimeUseWatchValue = useWatch({ control })
-	const useWatchValue = useDebounce(atomSearchDelay, realtimeUseWatchValue)
+	const useWatchValue = useDebounce(atomSearchConfig.delay, realtimeUseWatchValue)
 	const [dedupedEntryMap, setDedupedEntryMap] = useAtom(dedupedEntryMapAtom)
 	const [isCheckboxEnable, setIsCheckboxEnable] = useState(false)
 	type AddButtonContent = "add" | "update"
@@ -69,6 +71,7 @@ const EntryForm: FC = () => {
 			sc: useWatchValue.sc ?? newForm.sc,
 		}
 		setatomInputtingEntry(newe)
+		setAtomTopFormEntry(newe)
 		setIsCheckboxEnable(!!newe.from.match(/.*[a-zA-Z].*/))
 		const to = get_by_entry(dedupedEntryMap)(newe)
 		if (typeof to == "string") {
@@ -90,6 +93,7 @@ const EntryForm: FC = () => {
 		newForm,
 		setatomInputtingEntry,
 		setatomMatchingEntry,
+		setAtomTopFormEntry,
 	])
 	const addEntry = (f: Form) => {
 		const { to, ...fkey } = f

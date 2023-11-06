@@ -11,7 +11,8 @@ import {
 	inputtingEntryAtom,
 	newEntryAtom,
 	ngramIndexesForEntryAtom,
-	searchDelayAtom,
+	searchConfigAtom,
+	topFormEntryAtom,
 	uilanguageAtom,
 } from "@/ts/atom"
 import {
@@ -26,24 +27,27 @@ import {
 	FormControlLabel,
 } from "@mui/material"
 import EditIcon from "@mui/icons-material/Edit"
+import LockIcon from "@mui/icons-material/Lock"
 import { useAtom } from "jotai"
 import React, { FC, ReactEventHandler, useCallback, useEffect, useMemo, useState } from "react"
 import RecycleForm from "./recycleForm"
 import { concernLength, ngramScoreMap } from "@/ts/ts/text"
 import { caseUndefined, mapUnions, mapUnionsToAverage } from "@/ts/ts/map"
-import { LimitN, SimilarForm, defaultSimilarForm } from "@/ts/type"
+import { LimitN, SimilarForm } from "@/ts/type"
 import { translationTree } from "@/ts/lang"
 import { ketaDirty, ketaDirtyDisplay } from "@/ts/ts/number"
 import { Controller, useForm, useWatch } from "react-hook-form"
 import { useDebounce } from "@/ts/hook"
 import SearchForm from "./searchForm"
 import { spacecss } from "@/ts/css"
+import { type } from "os"
 
 const Entries: FC = () => {
+	const [atomSearchConfig] = useAtom(searchConfigAtom)
 	return (
 		<div className="lists">
 			<RecentEntries limit={2} />
-			<SimilarEntries maxShowNumber={10} />
+			<SimilarEntries maxShowNumber={atomSearchConfig.maxShowNumber} />
 		</div>
 	)
 }
@@ -77,7 +81,6 @@ type SimilarEntriesProp = {
 	allowDiffMax?: number
 }
 const SimilarEntries: FC<SimilarEntriesProp> = prop => {
-	const [allentries, setAllEntries] = useAtom(allentriesAtom)
 	const [inputting] = useAtom(inputtingEntryAtom)
 	const [atomIndex] = useAtom(ngramIndexesForEntryAtom)
 	const [atomEntryIdDedupedMap] = useAtom(entryIdDedupedMapAtom)
@@ -99,7 +102,7 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
 					})
 				)
 			)(inputting[fromto].length, lengthmaps[fromto]),
-		[atomIndex]
+		[atomIndex, inputting, lengthmaps]
 	)
 
 	const similarfrom = useMemo(() => {
@@ -128,17 +131,18 @@ const SimilarEntries: FC<SimilarEntriesProp> = prop => {
 				<Box>
 					<Typography variant="h5">{entryAttributeReadable(atomUIlanguage)(fromto)} </Typography>
 					<Box>
-						{similarCalc[fromto].map(([id, score]) => {
+						{similarCalc[fromto].map(([id, score], i) => {
 							// console.log("atomEntryIdDedupedMap", atomEntryIdDedupedMap)
 							const fkey = getDedupKeyById(id, atomEntryIdDedupedMap)
 							return fkey === undefined ? (
-								<Box>cannot get id</Box>
+								<Box>{`${i}. `} cannot get id</Box>
 							) : (
-								<Box {...cssflexCenter}>
+								<Box {...cssflexCenter} key={id}>
+									{`${i}. `}
 									{showPoint ? `${ketaDirtyDisplay("round", 5)(score)}` : ``}
 									{caseUndefined(atomDedupedMap.get(fkey ?? ""))(v => {
 										const e: Entry = { ...JSON.parse(fkey), to: v }
-										return <EachEntry entry={e} />
+										return <EachEntry frozenAttr={[fromto]} entry={e} />
 									}, <Box>stringified key not found</Box>)}
 								</Box>
 							)
@@ -224,9 +228,19 @@ const EntryView: FC<PropEntry> = ({ entry }) => {
 type PropEntry = {
 	entry: Entry
 }
-const EachEntry: FC<PropEntry> = ({ entry }) => {
-	const [formVisible, setFormVisible] = useState(false)
+type PropFrozen = {
+	entry: Entry
+	frozenAttr: [keyof Entry]
+}
 
+const EachEntry: FC<PropFrozen> = ({ entry, frozenAttr }) => {
+	const [formVisible, setFormVisible] = useState(false)
+	const [atomTopFormEntry] = useAtom(topFormEntryAtom)
+	const [atomInputtingEntry, setatomInputtingEntry] = useAtom(inputtingEntryAtom)
+	const hideMe = () => {
+		setFormVisible(false)
+		setatomInputtingEntry(atomTopFormEntry)
+	}
 	return (
 		<Box display={"flex"} alignItems={"center"}>
 			<IconButton
@@ -234,10 +248,10 @@ const EachEntry: FC<PropEntry> = ({ entry }) => {
 				onClick={() => {
 					setFormVisible(s => !s)
 				}}>
-				<EditIcon fontSize="small" />
+				{formVisible ? <LockIcon fontSize="small" /> : <EditIcon fontSize="small" />}
 			</IconButton>
 			{formVisible ? (
-				<RecycleForm hideMe={() => setFormVisible(false)} defaultValues={entry} />
+				<RecycleForm frozenAttr={frozenAttr} defaultValues={entry} />
 			) : (
 				<EntryView entry={entry} />
 			)}

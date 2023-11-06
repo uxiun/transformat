@@ -125,14 +125,20 @@ export const translationTree = {
 		en: "show match point",
 		ja: "一致度表示",
 	},
-	searchDelay: {
-		label: {
-			en: "search delay",
-			ja: "検索遅延",
+	searchConfig: {
+		searchDelay: {
+			label: {
+				en: "search delay",
+				ja: "検索遅延",
+			},
+			help: {
+				en: "increase this if input lagged",
+				ja: "入力がもたつくなら数値を大きく",
+			},
 		},
-		help: {
-			en: "increase this if input lagged",
-			ja: "入力がもたつくなら数値を大きく",
+		maxNumberlabel: {
+			en: "max number for search results",
+			ja: "検索結果の最大表示数",
 		},
 	},
 	output: {

@@ -15,7 +15,6 @@ type LangForm = {
 const InfoComponent: FC = () => {
 	const [show, setShow] = useState(true)
 	const [lang, setLang] = useAtom(uilanguageAtom)
-	console.info("InfoComponent(), lang=", lang)
 	const { control, handleSubmit, formState, getValues } = useForm<LangForm>({
 		defaultValues: { lang },
 	})

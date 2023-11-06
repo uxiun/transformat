@@ -16,7 +16,8 @@ import {
 	nextEntryIdAtom,
 	ngramIndexesForEntryAtom,
 	ngramIndexingEntry,
-	searchDelayAtom,
+	searchConfigAtom,
+	topFormEntryAtom,
 	uilanguageAtom,
 	updateIndexList,
 } from "@/ts/atom"
@@ -24,13 +25,14 @@ import { useDebounce } from "@/ts/hook"
 import { translationTree } from "@/ts/lang"
 import { list_modify } from "@/ts/ts/list"
 import { caseUndefined } from "@/ts/ts/map"
-import { ngramIndexing, ngramSegmentify } from "@/ts/ts/text"
+import { isEmptyOrWhitespaces, ngramIndexing, ngramSegmentify } from "@/ts/ts/text"
 import { Box, Button, Checkbox, FormControlLabel, TextField, Tooltip } from "@mui/material"
 import { useAtom } from "jotai"
 import { FC, useEffect, useState } from "react"
 import { Controller, useForm, useWatch } from "react-hook-form"
 
 type RecycleFormProp = {
+	frozenAttr: [keyof Entry]
 	defaultValues: Entry
 	hideMe?: () => void
 }
@@ -45,10 +47,11 @@ const RecycleForm: FC<RecycleFormProp> = prop => {
 	const [allentries, setAllEntries] = useAtom(allentriesAtom)
 	const [atomMatchingEntry, setatomMatchingEntry] = useAtom(matchingEntryAtom)
 	const [atomInputtingEntry, setatomInputtingEntry] = useAtom(inputtingEntryAtom)
+	const [atomTopFormEntry, setAtomTopFormEntry] = useAtom(topFormEntryAtom)
 	const [atomIndex, setatomIndex] = useAtom(ngramIndexesForEntryAtom)
 	const [atomNextEntryId, setatomNextEntryId] = useAtom(nextEntryIdAtom)
 	const [atomEntryIdDedupedMap, setatomEntryIdDedupedMap] = useAtom(entryIdDedupedMapAtom)
-	const [atomSearchDelay] = useAtom(searchDelayAtom)
+	const [atomSearchConfig] = useAtom(searchConfigAtom)
 
 	const [entriesForJSON, setEntriesForJSON] = useState(allentries)
 	type Form = Entry
@@ -61,7 +64,7 @@ const RecycleForm: FC<RecycleFormProp> = prop => {
 	type AddButtonContent = "add" | "update"
 	const [addButtonContent, setAddButtonContent] = useState<AddButtonContent>("add")
 	const [openTip, setOpenTip] = useState<TooltipOperationBools>(defaultTooltipOperationBools)
-	const useWatchValue = useDebounce(atomSearchDelay, realtimeUseWatchValue)
+	const useWatchValue = useDebounce(atomSearchConfig.delay, realtimeUseWatchValue)
 
 	useEffect(() => {
 		const newe: Entry = {
@@ -71,7 +74,21 @@ const RecycleForm: FC<RecycleFormProp> = prop => {
 			mw: useWatchValue.mw ?? newForm.mw,
 			sc: useWatchValue.sc ?? newForm.sc,
 		}
-		setatomInputtingEntry(newe)
+		const nas = [...Object.entries(newForm)].map(([attr, v]) => {
+			const a = attr as keyof Entry
+			return [
+				a,
+				prop.frozenAttr.includes(a) ? atomInputtingEntry[a] : useWatchValue[a] ?? newForm[a],
+			]
+		})
+		let frozen: Entry = Object.fromEntries(nas)
+		const fromto = ["from", "to"] as const
+		fromto.forEach(s => {
+			if (!prop.frozenAttr.includes(s) && isEmptyOrWhitespaces(frozen[s])) {
+				frozen[s] = atomTopFormEntry[s]
+			}
+		})
+		setatomInputtingEntry(frozen)
 		setIsCheckboxEnable(!!newe.from.match(/.*[a-zA-Z].*/))
 		const to = get_by_entry(dedupedEntryMap)(newe)
 		if (typeof to == "string") {
@@ -91,6 +108,9 @@ const RecycleForm: FC<RecycleFormProp> = prop => {
 		newForm,
 		setatomInputtingEntry,
 		setatomMatchingEntry,
+		atomTopFormEntry,
+		prop.frozenAttr,
+		atomInputtingEntry,
 	])
 
 	const addEntry = (f: Form) => {

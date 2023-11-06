@@ -28,8 +28,15 @@ export type Entry = {
 export const langs = ["ja", "en"] as const
 export type Lang = (typeof langs)[number]
 export const defaultLanguage = "ja"
-export const defaultSearchDelay = 700
-export const searchDelayAtom = atom(defaultSearchDelay)
+export const defaultSearchConfig: SearchConfig = {
+	delay: 700,
+	maxShowNumber: 10,
+}
+export type SearchConfig = {
+	delay: number
+	maxShowNumber: number
+}
+export const searchConfigAtom = atom(defaultSearchConfig)
 const entryAttributeTranslations: Record<keyof Entry, Record<Lang, string>> = {
 	from: {
 		en: "from",
@@ -90,6 +97,7 @@ export const defaultEntry: Entry = {
 }
 export type EntryBoolKey = "ic" | "mw" | "sc"
 export const inputtingEntryAtom = atom<Entry>(defaultEntry)
+export const topFormEntryAtom = atom<Entry>(defaultEntry)
 export const matchingEntryAtom = atom<Entry>(defaultEntry)
 export const newEntryAtom = atom<Entry>(defaultEntry)
 export const dedupedEntryMapAtom = atom<Map<string, string>>(new Map())
